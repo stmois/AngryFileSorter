@@ -48,31 +48,50 @@ void MoveFiles(string[] selectedFiles, string resultFolderFullPath, bool needToD
 {
     var rangeToProcess = Convert.ToInt32(ConfigurationManager.AppSettings.Get("FolderItemsMaxLength"));
     var iterator = 1;
+    var errorList = new List<string>();
 
     while (selectedFiles.Length > 0)
     {
         var processingFiles = selectedFiles.Take(rangeToProcess).ToArray();
+        
 
         foreach (var processingFile in processingFiles)
         {
-            var newPath = Path.Combine(resultFolderFullPath, iterator.ToString());
-            Directory.CreateDirectory(newPath);
-            var fileName = Path.GetFileName(processingFile);
-            var resultFile = Path.Combine(newPath, fileName);
-
-            if (needToDeleteSource)
+            try
             {
-                File.Move(processingFile, resultFile);
-            }
-            else
-            {
-                File.Copy(processingFile, resultFile);
-            }
+                var newPath = Path.Combine(resultFolderFullPath, iterator.ToString());
+                Directory.CreateDirectory(newPath);
+                var fileName = Path.GetFileName(processingFile);
+                var resultFile = Path.Combine(newPath, fileName);
 
-            PrintHelper.Print($"Перемещен файл {processingFile} >>> {resultFile}", ConsoleColor.DarkCyan);
+                if (needToDeleteSource)
+                {
+                    File.Move(processingFile, resultFile);
+                }
+                else
+                {
+                    File.Copy(processingFile, resultFile);
+                }
+
+                PrintHelper.Print($"Перемещен файл {processingFile} >>> {resultFile}", ConsoleColor.DarkCyan);
+            }
+            catch (Exception exception)
+            {
+                errorList.Add($"Не удалось обработать файл: {processingFile}. Ошибка: {exception.Message}");
+            }
         }
 
         selectedFiles = selectedFiles.Except(processingFiles).ToArray();
         iterator++;
+    }
+
+    if (errorList.Count <= 0)
+    {
+        return;
+    }
+
+    foreach (var error in errorList)
+    {
+        PrintHelper.Print(error, ConsoleColor.DarkRed);
     }
 }
